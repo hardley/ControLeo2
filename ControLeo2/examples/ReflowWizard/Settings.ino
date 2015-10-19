@@ -67,12 +67,13 @@ void InitializeSettingsIfNeccessary() {
       EEPROM.write(i, 0);
     // Set a reasonable max temperature
     setSetting(SETTING_MAX_TEMPERATURE, 240);
-    // Set the servos to neutral positions (90 degrees)
+    // Set the servos to 'not-used' and to neutral positions (90 degrees)
+    setSetting(SETTING_USE_SERVO, 0);
     setSetting(SETTING_SERVO_CLOSED_DEGREES, 90);
     setSetting(SETTING_SERVO_OPEN_DEGREES, 90);
   }
   
-  // Legacy support - Initialize the rest of EEPROM for upgrade from 1.x to 1.4
+  // Legacy support - Initialize the rest of EEPROM for upgrade from 1.x to 1.5
   if (getSetting(SETTING_SERVO_OPEN_DEGREES) > 180) {
     for (int i=SETTING_SERVO_OPEN_DEGREES; i<1024; i++)
       EEPROM.write(i, 0);

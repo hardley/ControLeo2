@@ -73,7 +73,19 @@
 *           - The open and close positions are configured in the Settings menu
 *           - The oven door will open when the reflow is done, and close at 50C.
 *             The door is also closed when ControLeo2 is turned on.
-*******************************************************************************/
+* 1.5       Minor improvements (15 July 2015)
+*           - Made code easier to read by using “F” macro for strings stored in flash
+*           - Minor adjustments to reflow values 
+*           - Restrict the maximum duty cycle for the boost element to 60%.  It
+*             should never need more than this!
+*           - Make thermocouple more tolerant of transient errors, including FAULT_OPEN
+* 1.5a      Minor UI improvements and textual changes (19 October 2015)
+*           - Added setup option 'Use Servo', YES/NO 
+*           - Visual representation of output ports D4 to D7 now shown as '1' to '4' 
+*             on LCD during 'Output Test' and 'Setup - Output'
+*           - Inhibit auto-repeat for buttons during Setup for 'Outputs' and 'Use Servo'
+*           - Button debounce period check is millis() made rollover-safe
+***************************************************************************************/
 
 
 // ***** INCLUDES *****
@@ -85,6 +97,11 @@
 ControLeo2_LiquidCrystal lcd;
 
 int mode = 0;
+boolean useServo = false;
+boolean buttonReleased = true;
+
+// Button debounce period (mS)
+#define DEBOUNCE_INTERVAL  200
 
 void setup() {
   // *********** Start of ControLeo2 initialization ***********
@@ -93,7 +110,7 @@ void setup() {
   pinMode(CONTROLEO_BUTTON_TOP_PIN, INPUT_PULLUP);
   pinMode(CONTROLEO_BUTTON_BOTTOM_PIN, INPUT_PULLUP);
   // Set the relays as outputs and turn them off
-  // The relay outputs are on D4 to D7 (4 outputs)
+  // The four relay outputs 1..4 are on D4 to D7
   for (int i=4; i<8; i++) {
     pinMode(i, OUTPUT);
     digitalWrite(i, LOW);
@@ -112,8 +129,8 @@ void setup() {
   initializeTimer();
 
   // Write the initial message on the LCD screen
-  lcdPrintLine(0, "   ControLeo2");
-  lcdPrintLine(1, "Reflow Oven v1.5");
+  lcdPrintLine(0, "ControLeo2");
+  lcdPrintLine(1, "Reflow v1.5a");
   delay(100);
   playTones(TUNE_STARTUP);
   delay(3000);
@@ -121,6 +138,9 @@ void setup() {
   
   // Initialize the EEPROM, after flashing bootloader
   InitializeSettingsIfNeccessary();
+
+  // Select whether Servo is to be used
+  useServo = (getSetting(SETTING_USE_SERVO));
   
   // Go straight to reflow menu if learning is complete
   if (getSetting(SETTING_LEARNING_MODE) == false)
@@ -128,7 +148,7 @@ void setup() {
   
   Serial.println(F("ControLeo2 Reflow Oven controller v1.5"));
   
-  // Make sure the oven door is closed
+  // Make sure the oven door is closed, if servo is used
   setServoPosition(getSetting(SETTING_SERVO_CLOSED_DEGREES), 1000);
 }
 
@@ -159,7 +179,7 @@ void loop()
       displayTemperature(getCurrentTemperature());
     
     // Get the button press to select the mode or move to the next mode
-    switch (getButton()) {
+    switch (getButton(false)) {
     case CONTROLEO_BUTTON_TOP:
       // Move to the next mode
       mode = (mode + 1) % NO_OF_MODES;
@@ -193,32 +213,58 @@ void loop()
 //   CONTROLEO_BUTTON_TOP if the top button was pressed
 //   CONTROLEO_BUTTON_BOTTOM if the bottom button was pressed
 // Note: If both buttons are pressed simultaneously, CONTROLEO_BUTTON_TOP will be returned
-#define DEBOUNCE_INTERVAL  200
 
-int getButton()
+byte getButton(boolean autoRepeat)
 {
   static long lastChangeMillis = 0;
-  long nowMillis = millis();
-  int buttonValue;
+  static byte lastButton = CONTROLEO_BUTTON_NONE;
+  byte buttonValue;
   
   // If insufficient time has passed, just return none pressed
-  if (lastChangeMillis + DEBOUNCE_INTERVAL > nowMillis)
+  if (millis() - lastChangeMillis < DEBOUNCE_INTERVAL ) //Rollover safe
     return CONTROLEO_BUTTON_NONE;
-  
-  // Read the current button status
+ 
+  // Set default value
   buttonValue = CONTROLEO_BUTTON_NONE;
+    
+  // Read the current button status
   if (digitalRead(CONTROLEO_BUTTON_TOP_PIN) == LOW) {
     buttonValue = CONTROLEO_BUTTON_TOP;
-    playTones(TUNE_TOP_BUTTON_PRESS);
+    if (buttonValue == lastButton) // Button hasn't changed?
+    {
+      if (!autoRepeat) {                     // If not auto-repeating
+        buttonValue = CONTROLEO_BUTTON_NONE; // return as if not pressed
+      } 
+      else {
+        playTones(TUNE_TOP_BUTTON_PRESS);
+        buttonReleased = false; // Inhibit autorepeat on Bottom button      
+      }
+    } else playTones(TUNE_TOP_BUTTON_PRESS);
+    lastButton = CONTROLEO_BUTTON_TOP; 
   }
   else if (digitalRead(CONTROLEO_BUTTON_BOTTOM_PIN) == LOW) {
     buttonValue = CONTROLEO_BUTTON_BOTTOM;
-    playTones(TUNE_BOTTOM_BUTTON_PRESS);
+    if (buttonValue == lastButton) // Button hasn't changed?
+    {
+      if (!autoRepeat) {                     // If not auto-repeating
+        buttonValue = CONTROLEO_BUTTON_NONE; // return as if not pressed
+      }
+      else {
+         buttonReleased = false; // Inhibit autorepeat on Bottom button           
+      } 
+    } 
+    else playTones(TUNE_BOTTOM_BUTTON_PRESS);
+    
+    lastButton = CONTROLEO_BUTTON_BOTTOM;
+  }
+  else {
+    lastButton = CONTROLEO_BUTTON_NONE; // Button released
+    buttonReleased = true;
   }
     
   // Note the time the button was pressed
   if (buttonValue != CONTROLEO_BUTTON_NONE)
-   lastChangeMillis = nowMillis;
+   lastChangeMillis = millis();
   
   return buttonValue;
 }
@@ -231,10 +277,11 @@ int getButton()
 void lcdPrintLine(int line, const char* str) {
   char buffer[17] = "                ";
   // Sanity check on the parameters
-  if (line < 0 || line > 1 || !str || strlen(str) > 16)
+  if (line < 0 || line > 1 || !str)
     return;
   lcd.setCursor(0, line);
-  strncpy(buffer, str, strlen(str));
+  // left justify and truncate at 16 chars
+  sprintf(buffer,"%-16.16s",str);
   lcd.print(buffer);
 }
 

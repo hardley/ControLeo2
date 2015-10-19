@@ -2,6 +2,11 @@
 #ifndef REFLOW_WIZARD_H
 #define REFLOW_WIZARD_H
 
+// Buffer used for Serial.print
+char debugBuffer[100];
+
+#define MILLIS_TO_SECONDS                    ((long) 1000)
+
 // Main menu modes
 #define MODE_TESTING                         0
 #define MODE_CONFIG                          1
@@ -18,7 +23,7 @@
 #define TYPE_CONVECTION_FAN                  4
 #define NO_OF_TYPES                          5
 
-const char *outputDescription[NO_OF_TYPES] = {"Unused", "Top", "Bottom", "Boost", "Fan"};
+const char *outputDescription[NO_OF_TYPES] = {"UNUSED", "UPPER element", "LOWER element", "BOOST element", "CONVECTION fan"};
 
 // Phases of reflow
 #define PHASE_INIT                           0    // Variable initialization
@@ -49,6 +54,7 @@ const char *phaseDescription[] = {"", "Presoak", "Soak", "Reflow", "Waiting", "C
 #define SETTING_D7_TYPE                       4    // Element type controlled by D7 (or fan, unused)
 #define SETTING_MAX_TEMPERATURE               5    // Maximum oven temperature.  Relow curve will be based on this (stored temp is offset by 150 degrees)
 #define SETTING_SETTINGS_CHANGED              6    // Settings have changed.  Relearn duty cycles
+#define SETTING_USE_SERVO                     7    // Is servo attached and to be used?
 
 // Learned settings
 #define SETTING_LEARNING_MODE                 10   // ControLeo is learning oven response and will make adjustments
@@ -69,7 +75,6 @@ const char *phaseDescription[] = {"", "Presoak", "Soak", "Reflow", "Waiting", "C
 
 
 #define SETTING_TEMPERATURE_OFFSET            150  // To allow temperature to be saved in 8-bits (0-255)
-
 
 // Thermocouple
 #define THERMOCOUPLE_FAULT(x)                 (x == FAULT_OPEN || x == FAULT_SHORT_GND || x == FAULT_SHORT_VCC)

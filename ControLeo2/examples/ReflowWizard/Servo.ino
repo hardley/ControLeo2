@@ -87,7 +87,7 @@ ISR(TIMER1_COMPA_vect)
 
 
 // Timer 1 Compare B interrrupt
-// This interrupt fires once the desired piulse duration has been sent to the servo
+// This interrupt fires once the desired pulse duration has been sent to the servo
 ISR(TIMER1_COMPB_vect)
 {
   digitalWrite(SERVO_PIN, LOW);
@@ -96,37 +96,39 @@ ISR(TIMER1_COMPB_vect)
 
 // Move the servo to servoDegrees, in timeToTake milliseconds (1/1000 second)
 void setServoPosition(unsigned int servoDegrees, int timeToTake) {
-  sprintf(debugBuffer, "Servo: move to %d degrees, over %d ms", servoDegrees, timeToTake);
-  Serial.println(debugBuffer);
-  // Make sure the degrees are 0 - 180
-  if (servoDegrees > 180)
-    return;
-  // Figure out what the end timer value should be
-  servoEndValue = degreesToTimerCounter(servoDegrees);
-  
-  // If the servo is already in this position, then don't do anything
-  if (servoEndValue == (int) OCR1B)
-    return;
+  if (useServo) {
+    sprintf(debugBuffer, "Servo: move to %d degrees, over %d ms", servoDegrees, timeToTake);
+    Serial.println(debugBuffer);
+    // Make sure the degrees are 0 - 180
+    if (servoDegrees > 180)
+      return;
+    // Figure out what the end timer value should be
+    servoEndValue = degreesToTimerCounter(servoDegrees);
     
-  // Figure out how many movements this will take (a movement is made every 20ms)
-  servoMovements = timeToTake / 20;
+    // If the servo is already in this position, then don't do anything
+    if (servoEndValue == (int) OCR1B)
+      return;
+      
+    // Figure out how many movements this will take (a movement is made every 20ms)
+    servoMovements = timeToTake / 20;
+    
+    // Is the movement small?
+    if (abs(servoEndValue - (int) OCR1B) < servoMovements) {
+      // Make the full movement in one go
+      OCR1B = servoEndValue;
+      servoIncrement = 0;
+    }
+    else {
+      // Figure out the timer increment to achieve the end value
+      servoIncrement = (servoEndValue - (int) OCR1B) / servoMovements;
+      // There are rounding errors, so calculate the number of movements again
+      servoMovements = (servoEndValue - (int) OCR1B) / servoIncrement;
+    }
   
-  // Is the movement small?
-  if (abs(servoEndValue - (int) OCR1B) < servoMovements) {
-    // Make the full movement in one go
-    OCR1B = servoEndValue;
-    servoIncrement = 0;
+    // Enable the servo compare interrupt to start the servo motion
+    TIMSK1 |= _BV(OCIE1B);
   }
-  else {
-    // Figure out the timer increment to achieve the end value
-    servoIncrement = (servoEndValue - (int) OCR1B) / servoMovements;
-    // There are rounding errors, so calculate the number of movements again
-    servoMovements = (servoEndValue - (int) OCR1B) / servoIncrement;
-  }
-
-  // Enable the servo compare interrupt to start the servo motion
-  TIMSK1 |= _BV(OCIE1B);
-} 
+}
 
 
 // Convert degrees (0-180) to a timer counter value

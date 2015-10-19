@@ -15,7 +15,7 @@ boolean Testing() {
   if (firstRun) {
     firstRun = false;
     lcdPrintLine(0, "Test Outputs");
-    lcdPrintLine(1, "Output 4");
+    lcdPrintLine(1, "Output 1");
     displayOnState(channelIsOn);
   }
   
@@ -28,7 +28,7 @@ boolean Testing() {
   }
   
   // Was a button pressed?
-  switch (getButton()) {
+  switch (getButton(false)) {
     case CONTROLEO_BUTTON_TOP:
       // Toggle the output on and off
       channelIsOn = !channelIsOn;
@@ -49,7 +49,7 @@ boolean Testing() {
         return false;
       }
       lcd.setCursor(7, 1);
-      lcd.print(channel);
+      lcd.print(channel - 3);
       displayOnState(channelIsOn);
       break;
   }
@@ -61,5 +61,5 @@ boolean Testing() {
 
 void displayOnState(boolean isOn) {
   lcd.setCursor(9, 1);
-  lcd.print(isOn? "is on ": "is off");
+  lcd.print(isOn? "is ON ": "is OFF");
 }

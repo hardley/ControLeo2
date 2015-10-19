@@ -3,11 +3,6 @@
 // This where the reflow logic is controlled
 
 
-// Buffer used for Serial.print
-char debugBuffer[100];
-
-#define MILLIS_TO_SECONDS    ((long) 1000)
-
 // The data for each of pre-soak, soak and reflow phases
 struct phaseData {
   int elementDutyCycle[4];    // Duty cycle for each output
@@ -59,7 +54,7 @@ boolean Reflow() {
   }
   
   // Abort the reflow if a button is pressed
-  if (getButton() != CONTROLEO_BUTTON_NONE) {
+  if (getButton(false) != CONTROLEO_BUTTON_NONE) {
     reflowPhase = PHASE_ABORT_REFLOW;
     lcdPrintLine(0, "Aborting reflow");
     lcdPrintLine(1, "Button pressed");
@@ -420,7 +415,7 @@ boolean Reflow() {
       // Turn all elements and fans off
       for (i = 4; i < 8; i++)
         digitalWrite(i, LOW);
-      // Close the oven door now, over 3 seconds
+      // If servo is attached close the oven door now, over 3 seconds
       setServoPosition(getSetting(SETTING_SERVO_CLOSED_DEGREES), 3000);
       // Start next time with initialization
       reflowPhase = PHASE_INIT;
