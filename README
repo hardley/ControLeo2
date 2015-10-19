@@ -1,29 +1,11 @@
 ControLeo2 Reflow Oven Controller
 =================================
 
-This project was on Kickstarter:
-https://www.kickstarter.com/projects/1471240030/controleo2-reflow-oven
-
-Reflow oven build guide:
-http://www.whizoo.com/reflowoven
-
-Buying ControLeo2:
-http://www.whizoo.com/buy
-
-Updating the firmware running on ControLeo2:
-http://www.whizoo.com/update
-
-This is the GitHub source code repository for ControLeo2.  ControLeo2 is an Arduino Leonardo controller with quad relay outputs used to control reflow ovens.
-
-In this folder are:
-1. README - this file
-2. A "ControLeo2” folder.  This is an Arduino library and examples for ControLeo2
-
-To install the ControLeo2 library, please refer to:
-http://arduino.cc/en/Guide/Libraries or http://www.whizoo.com/update
+Forked from original repository: https://github.com/engineertype/ControLeo2  Version 1.5
 
 Reflow Wizard
 =============
+By original author:
 * 1.0  Initial public release. (21 October 2014)
 * 1.1  Bug fixes (30 December 2014)
 *      - Oven temperature might not reach configured maximum temperature
@@ -53,16 +35,14 @@ Reflow Wizard
 *        should never need more than this!
 *      - Make thermocouple more tolerant of transient errors, including
 *        FAULT_OPEN
- 
 
-Oven door servo:
-================
-Version 1.4 adds support for a servo to open the oven door when the reflow is done.  The door should be opened 1” - 2” so the temperature drop does not exceed 6°C/second.  Small servos (like the TG9) are probably powerful enough to open the oven door. Large servos (like the MG945 with metal gears) will work too - with a caveat.  Large servos mean large stall currents which can cause the voltage to the microcontroller to drop and cause a brown-out reset.  To prevent this from happening, it is recommended that you place a large capacitor (e.g. 220uF, 16V) between +5V and GND.
+Amendments by Hardley: 
+* 1.5a      Minor UI improvements and textual changes (19 October 2015)
+*           - Added setup option 'Use Servo', YES/NO 
+*           - Visual representation of output ports D4 to D7 now shown as '1' to '4' 
+*             on LCD during 'Output Test' and 'Setup - Output'
+*           - Inhibit auto-repeat for buttons during Setup for 'Outputs' and 'Use Servo'
+*           - Button debounce period check is millis() made rollover-safe
 
-The power supply used to power ControLeo2 should provide at least 1000mA, but preferably 1.5A or even 2A.  The power supplies provided in the ControLeo2 oven build kit are 2A. 
-
-
-Peter Easton 2015
-whizoo.com
 
 
